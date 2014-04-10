@@ -20,29 +20,29 @@ getDimensions (Board b)
         | otherwise = (length b, length (b !! 0))
 
 -- cell at x y
-getCellAt :: Int -> Int -> Board -> Cell
-getCellAt x y (Board b)
+getCellAt :: (Int, Int) -> Board -> Cell
+getCellAt (x,y) (Board b)
         | (x >= (length b)) || (neg x) =  False
         | y >= (length (b !! 0)) || (neg y) =  False
         | otherwise     =  (b !! x) !! y
 
 -- get neighbours of cell at x y, cell not included
-getNeighbours :: Int -> Int -> Board -> [Cell]
-getNeighbours x y b = map (\x -> getCellAt (fst x) (snd x) b) [(a, b) | a <- [(x-1)..(x+1)], b <- [(y-1)..(y+1)], (x /= a || y /= b)]
+getNeighbours :: (Int,Int) -> Board -> [Cell]
+getNeighbours (x,y) b = map (\x -> getCellAt x b) [(a, b) | a <- [(x-1)..(x+1)], b <- [(y-1)..(y+1)], (x /= a || y /= b)]
 
 -- calculate new state of cell
-calculateCell :: Int -> Int -> Board -> Cell
-calculateCell x y b 
-        | countLive x y b == 3 = True
-        | countLive x y b == 2 && isLive x y b = True
+calculateCell :: (Int,Int) -> Board -> Cell
+calculateCell x b 
+        | countLive x b == 3 = True
+        | countLive x b == 2 && isLive x b = True
         | otherwise = False
-        where countLive x y b = length (filter (\x -> x == True) (getNeighbours x y b))
-              isLive x y b = (getCellAt x y b) == True
+        where countLive x b = length (filter (\x -> x == True) (getNeighbours x b))
+              isLive x b = (getCellAt x b) == True
 
 -- calculate new state of board
 step :: Board -> Board
 step b = let dim = getDimensions b
-         in Board $ chunksOf (snd dim) (map (\x -> calculateCell (fst x) (snd x) b) [(a,c) | a <- [0..((fst dim)-1)], c <- [0..((snd dim)-1)]])
+         in Board $ chunksOf (snd dim) (map (\x -> calculateCell x b) [(a,c) | a <- [0..((fst dim)-1)], c <- [0..((snd dim)-1)]])
 
 -- list of true
 trueList = True : trueList
@@ -68,7 +68,7 @@ svgRect x y w h cell = "<rect x=\"" ++ show x ++ "\" y=\"" ++ show y ++ "\" widt
 
 -- print a board as a svg rectangles
 svgCells :: Int -> Board -> String
-svgCells x b = unlines (map (\dim -> svgRect ((fst dim) * x) ((snd dim) * x) x x (getCellAt (fst dim) (snd dim) b)) [(a,b) | a <- [0..xmax], b <- [0..ymax]])
+svgCells x b = unlines (map (\dim -> svgRect ((fst dim) * x) ((snd dim) * x) x x (getCellAt dim b)) [(a,b) | a <- [0..xmax], b <- [0..ymax]])
             where xmax = (fst $ getDimensions b) - 1
                   ymax = (snd $ getDimensions b) - 1
 -- print board as svg recangles with begin and end tag
@@ -95,5 +95,5 @@ writeEvolution gen x (z:xs) = do
             writeEvolution (gen+1) x xs
 
 main = do 
-    let x = evolution 100 $ createRandomBoard 30
+    let x = evolution 10 $ createRandomBoard 10
     writeEvolution 1 10 x
