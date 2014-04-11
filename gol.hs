@@ -7,7 +7,7 @@ type Cell = Bool
 data Board = Board [[Cell]] deriving Show
 
 createBoard :: Int -> Int -> Board
-createBoard x y = Board (chunksOf x (take (x * y) trueList))
+createBoard x y = Board (chunksOf x (replicate (x * y) True))
 
 neg :: (Num a, Ord a) => a -> Bool
 neg x 
@@ -17,7 +17,7 @@ neg x
 getDimensions :: Board -> (Int, Int)
 getDimensions (Board b)
         | length b == 0 = (0, 0)
-        | otherwise = (length b, length (b !! 0))
+        | otherwise = (length b, length (head b))
 
 -- cell at x y
 getCellAt :: (Int, Int) -> Board -> Cell
@@ -36,8 +36,8 @@ calculateCell x b
         | countLive x b == 3 = True
         | countLive x b == 2 && isLive x b = True
         | otherwise = False
-        where countLive x b = length (filter (\x -> x == True) (getNeighbours x b))
-              isLive x b = (getCellAt x b) == True
+        where countLive x b = length (filter (\x -> x) (getNeighbours x b))
+              isLive x b = getCellAt x b
 
 -- calculate new state of board
 step :: Board -> Board
@@ -50,14 +50,13 @@ trueList = True : trueList
 -- create board with random cells
 createRandomBoard :: Int -> IO Board
 createRandomBoard x = do
-                    g <- getStdGen
+                    g <- newStdGen
                     return (Board (chunksOf x (take (x*x) (randoms g :: [Bool]))))
 
 -- evolve over x steps
-evolution :: Int -> IO Board -> [IO Board]
-evolution x b
-        | x == 0 = []
-        | otherwise = b : evolution (x-1) (liftM step b)
+evolution :: Int -> Board -> [Board]
+evolution 0 b = []
+evolution x b = b : evolution (x-1) (step b)
 
 -- print a cell as a svg rectangle
 svgRect :: Int -> Int -> Int -> Int -> Cell -> String
@@ -82,18 +81,18 @@ htmlSvgBoard :: Int -> Int -> Board -> String
 htmlSvgBoard gen x b = "<div><p><a href=\"" ++ show (gen - 1) ++ ".html\">previous</a></p><p><a href=\"" ++ show (gen + 1) ++ ".html\">next</a></p></div>" ++ (svgBoard x b)
 
 -- write a board to a file
-writeBoard :: Int -> Int -> FilePath -> IO Board -> IO ()
+writeBoard :: Int -> Int -> FilePath -> Board -> IO ()
 writeBoard gen x name b = do
-                res <- liftM (htmlSvgBoard gen x) b
+                let res = htmlSvgBoard gen x b
                 writeFile name res
 
 -- write a list of boards to a file
-writeEvolution gen x (z:[]) = do
-            writeBoard gen x ((show gen) ++ ".html") z
+writeEvolution :: Int -> Int -> [Board] -> IO ()
+writeEvolution gen x [] = return ()
 writeEvolution gen x (z:xs) = do
             writeBoard gen x ((show gen) ++ ".html") z
             writeEvolution (gen+1) x xs
 
 main = do 
-    let x = evolution 10 $ createRandomBoard 10
-    writeEvolution 1 10 x
+    board <- createRandomBoard 30
+    writeEvolution 1 10 (evolution 100 board)
