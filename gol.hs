@@ -32,12 +32,11 @@ getNeighbours (x,y) b = map (\x -> getCellAt x b) [(a, b) | a <- [(x-1)..(x+1)],
 
 -- calculate new state of cell
 calculateCell :: (Int,Int) -> Board -> Cell
-calculateCell x b 
-        | countLive x b == 3 = True
-        | countLive x b == 2 && isLive x b = True
-        | otherwise = False
-        where countLive x b = length (filter (\x -> x) (getNeighbours x b))
-              isLive x b = getCellAt x b
+calculateCell x b = case (countLive x b) of
+                        3 -> True
+                        2 -> getCellAt x b
+                        _ -> False
+                where countLive x b = length (filter id (getNeighbours x b))
 
 -- calculate new state of board
 step :: Board -> Board
@@ -56,7 +55,7 @@ createRandomBoard x = do
 -- evolve over x steps
 evolution :: Int -> Board -> [Board]
 evolution 0 b = []
-evolution x b = b : evolution (x-1) (step b)
+evolution x b = take x (iterate step b)
 
 -- print a cell as a svg rectangle
 svgRect :: Int -> Int -> Int -> Int -> Cell -> String
@@ -88,10 +87,8 @@ writeBoard gen x name b = do
 
 -- write a list of boards to a file
 writeEvolution :: Int -> Int -> [Board] -> IO ()
-writeEvolution gen x [] = return ()
-writeEvolution gen x (z:xs) = do
-            writeBoard gen x ((show gen) ++ ".html") z
-            writeEvolution (gen+1) x xs
+writeEvolution gen0 x boards = zipWithM_ step (iterate (+1) gen0) boards
+        where step gen board = writeBoard gen x (show gen ++ ".html") board
 
 main = do 
     board <- createRandomBoard 30
