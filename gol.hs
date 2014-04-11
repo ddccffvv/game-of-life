@@ -91,5 +91,5 @@ writeEvolution gen0 x boards = zipWithM_ step (iterate (+1) gen0) boards
         where step gen board = writeBoard gen x (show gen ++ ".html") board
 
 main = do 
-    board <- createRandomBoard 30
-    writeEvolution 1 10 (evolution 100 board)
+    board <- createRandomBoard 100
+    writeEvolution 1 5 (evolution 1000 board)
